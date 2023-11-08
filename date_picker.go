@@ -104,7 +104,8 @@ func adjustWeekday(d time.Weekday) int {
 }
 
 func updateGrid(grid *fyne.Container, when time.Time, updateWhen func(t time.Time)) {
-	weekdays := []*widget.Label{
+	// row of weekdays at the top
+	objs := []fyne.CanvasObject{
 		widget.NewLabelWithStyle("Mon", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Tue", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Wed", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
@@ -112,13 +113,6 @@ func updateGrid(grid *fyne.Container, when time.Time, updateWhen func(t time.Tim
 		widget.NewLabelWithStyle("Fri", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Sat", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Sun", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-	}
-
-	objs := []fyne.CanvasObject{}
-
-	// row of weekdays at the top
-	for _, label := range weekdays {
-		objs = append(objs, label)
 	}
 
 	firstDay := adjustWeekday(firstWeekdayOfMonth(when))

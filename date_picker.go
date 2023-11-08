@@ -230,14 +230,12 @@ func NewDatePicker(when time.Time, fn func(time.Time, bool)) fyne.CanvasObject {
 		updateGrid(grid, t, updateWhen)
 	}
 
-	//prevMonthButton := NewTapIcon(theme.NavigateBackIcon(), func() {
 	prevMonthButton := widget.NewButtonWithIcon("", theme.NavigateBackIcon(), func() {
 		when = timeJumpMonth(when, -1)
 
 		updateSelects(when)
 	})
 
-	//nextMonthButton := NewTapIcon(theme.NavigateNextIcon(), func() {
 	nextMonthButton := widget.NewButtonWithIcon("", theme.NavigateNextIcon(), func() {
 		when = timeJumpMonth(when, 1)
 

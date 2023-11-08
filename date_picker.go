@@ -103,7 +103,7 @@ func adjustWeekday(d time.Weekday) int {
 	return int(d)
 }
 
-func updateGrid(grid *fyne.Container, when time.Time, updateWhen func(t time.Time)) {
+func updateGrid(grid *fyne.Container, when time.Time, updateWhen func(time.Time), updateSelects func(time.Time)) {
 	// row of weekdays at the top
 	objs := []fyne.CanvasObject{
 		widget.NewLabelWithStyle("Mon", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
@@ -118,10 +118,29 @@ func updateGrid(grid *fyne.Container, when time.Time, updateWhen func(t time.Tim
 	firstDay := adjustWeekday(firstWeekdayOfMonth(when))
 	lastDay := adjustWeekday(lastWeekdayOfMonth(when))
 	days := daysInMonth(when, 0)
+	daysPrevMonth := daysInMonth(when, -1)
 
 	// empty fields for days of the previous month that cut into the first week
 	for n := 1; n < firstDay; n++ {
-		objs = append(objs, widget.NewLabel(""))
+		day := daysPrevMonth - firstDay + n + 1
+		button := widget.NewButton(fmt.Sprintf("%d", day), func() {
+			when = time.Date(
+				when.Year(),
+				when.Month(),
+				1,
+				when.Hour(),
+				when.Minute(),
+				when.Second(),
+				when.Nanosecond(),
+				when.Location(),
+			).AddDate(0, -1, day-1)
+
+			updateWhen(when)
+			updateSelects(when)
+		})
+		button.Importance = widget.LowImportance
+
+		objs = append(objs, button)
 	}
 
 	var buttons []*widget.Button
@@ -162,8 +181,26 @@ func updateGrid(grid *fyne.Container, when time.Time, updateWhen func(t time.Tim
 	}
 
 	// empty fields for days after the previous month
-	for n := 1; n <= 7-(lastDay%7); n++ {
-		objs = append(objs, widget.NewLabel(""))
+	for n := 1; lastDay < 7 && n <= 7-(lastDay%7); n++ {
+		day := n
+		button := widget.NewButton(fmt.Sprintf("%d", day), func() {
+			when = time.Date(
+				when.Year(),
+				when.Month(),
+				1,
+				when.Hour(),
+				when.Minute(),
+				when.Second(),
+				when.Nanosecond(),
+				when.Location(),
+			).AddDate(0, 1, day-1)
+
+			updateWhen(when)
+			updateSelects(when)
+		})
+		button.Importance = widget.LowImportance
+
+		objs = append(objs, button)
 	}
 
 	// add up to another empty row to compensate for months with a high first weekday
@@ -185,6 +222,8 @@ func findMonth(month string) int {
 }
 
 func NewDatePicker(when time.Time, fn func(time.Time, bool)) fyne.CanvasObject {
+	var updateSelects func(time.Time)
+
 	grid := container.New(layout.NewGridLayoutWithColumns(7))
 
 	updateWhen := func(t time.Time) {
@@ -199,7 +238,7 @@ func NewDatePicker(when time.Time, fn func(time.Time, bool)) fyne.CanvasObject {
 
 		when = timeJumpYearMonth(when, when.Year(), i)
 
-		updateGrid(grid, when, updateWhen)
+		updateGrid(grid, when, updateWhen, updateSelects)
 	})
 	monthSelect.Selected = when.Month().String()
 
@@ -216,18 +255,18 @@ func NewDatePicker(when time.Time, fn func(time.Time, bool)) fyne.CanvasObject {
 
 		when = timeJumpYearMonth(when, int(i), int(when.Month()))
 
-		updateGrid(grid, when, updateWhen)
+		updateGrid(grid, when, updateWhen, updateSelects)
 	})
 	yearSelect.Selected = fmt.Sprintf("%d", when.Year())
 
-	updateSelects := func(t time.Time) {
+	updateSelects = func(t time.Time) {
 		// directly assign instead of setter methods to avoid multiple updates
 		monthSelect.Selected = t.Month().String()
 		monthSelect.Refresh()
 		yearSelect.Selected = fmt.Sprintf("%d", t.Year())
 		yearSelect.Refresh()
 
-		updateGrid(grid, t, updateWhen)
+		updateGrid(grid, t, updateWhen, updateSelects)
 	}
 
 	prevMonthButton := widget.NewButtonWithIcon("", theme.NavigateBackIcon(), func() {
@@ -257,7 +296,7 @@ func NewDatePicker(when time.Time, fn func(time.Time, bool)) fyne.CanvasObject {
 		),
 	)
 
-	updateGrid(grid, when, updateWhen)
+	updateGrid(grid, when, updateWhen, updateSelects)
 
 	hourInput := widget.NewEntry()
 	minuteInput := widget.NewEntry()

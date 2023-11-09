@@ -32,7 +32,7 @@ func main() {
 			}
 		}
 
-		datepicker := datepicker.NewDatePicker(when, func(when time.Time, ok bool) {
+		datepicker := datepicker.NewDatePicker(when, time.Monday, func(when time.Time, ok bool) {
 			if ok {
 				dateInput.SetText(when.Format("2006/01/02 15:04"))
 			}

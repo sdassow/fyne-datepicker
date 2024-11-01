@@ -252,8 +252,9 @@ func (e *selectEntry) MinSize() fyne.Size {
 
 type DateTimePicker struct {
 	widget.BaseWidget
-	container  *fyne.Container
-	OnActioned func(bool)
+	container     *fyne.Container
+	updateSelects func(time.Time)
+	OnActioned    func(bool)
 }
 
 func (dtp *DateTimePicker) CreateRenderer() fyne.WidgetRenderer {
@@ -263,8 +264,9 @@ func (dtp *DateTimePicker) CreateRenderer() fyne.WidgetRenderer {
 func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bool)) *DateTimePicker {
 	dtp := &DateTimePicker{}
 	dtp.ExtendBaseWidget(dtp)
-
-	var updateSelects func(time.Time)
+	dtp.OnActioned = func(ok bool) {
+		fn(when, ok)
+	}
 
 	grid := container.New(layout.NewGridLayoutWithColumns(7))
 
@@ -280,7 +282,7 @@ func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bo
 
 		when = timeJumpYearMonth(when, when.Year(), i)
 
-		updateGrid(grid, when, weekStart, updateWhen, updateSelects)
+		updateGrid(grid, when, weekStart, updateWhen, dtp.updateSelects)
 	})
 	monthSelect.Selected = when.Month().String()
 
@@ -297,30 +299,30 @@ func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bo
 
 		when = timeJumpYearMonth(when, int(i), int(when.Month()))
 
-		updateGrid(grid, when, weekStart, updateWhen, updateSelects)
+		updateGrid(grid, when, weekStart, updateWhen, dtp.updateSelects)
 	})
 	yearSelect.Selected = fmt.Sprintf("%d", when.Year())
 
-	updateSelects = func(t time.Time) {
+	dtp.updateSelects = func(t time.Time) {
 		// directly assign instead of setter methods to avoid multiple updates
 		monthSelect.Selected = t.Month().String()
 		monthSelect.Refresh()
 		yearSelect.Selected = fmt.Sprintf("%d", t.Year())
 		yearSelect.Refresh()
 
-		updateGrid(grid, t, weekStart, updateWhen, updateSelects)
+		updateGrid(grid, t, weekStart, updateWhen, dtp.updateSelects)
 	}
 
 	prevMonthButton := widget.NewButtonWithIcon("", theme.NavigateBackIcon(), func() {
 		when = timeJumpMonth(when, -1)
 
-		updateSelects(when)
+		dtp.updateSelects(when)
 	})
 
 	nextMonthButton := widget.NewButtonWithIcon("", theme.NavigateNextIcon(), func() {
 		when = timeJumpMonth(when, 1)
 
-		updateSelects(when)
+		dtp.updateSelects(when)
 	})
 
 	top := container.New(
@@ -338,7 +340,19 @@ func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bo
 		),
 	)
 
-	updateGrid(grid, when, weekStart, updateWhen, updateSelects)
+	updateGrid(grid, when, weekStart, updateWhen, dtp.updateSelects)
+
+	dtp.container = container.New(
+		layout.NewBorderLayout(top, nil, nil, nil),
+		top,
+		grid,
+	)
+
+	return dtp
+}
+
+func NewDateTimePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bool)) *DateTimePicker {
+	dtp := NewDatePicker(when, weekStart, fn)
 
 	hours := []string{}
 	for n := 0; n <= 23; n++ {
@@ -360,13 +374,9 @@ func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bo
 			hourInput.SetText(when.Format("15"))
 			minuteInput.SetText(when.Format("04"))
 
-			updateSelects(when)
+			dtp.updateSelects(when)
 		}),
 	)
-
-	dtp.OnActioned = func(ok bool) {
-		fn(when, ok)
-	}
 
 	hourInput.SetText(when.Format("15"))
 	hourInput.OnChanged = func(str string) {
@@ -422,6 +432,9 @@ func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bo
 		controlButtons,
 		timeForm,
 	)
+
+	top := dtp.container.Objects[0]
+	grid := dtp.container.Objects[1]
 
 	dtp.container = container.New(
 		layout.NewBorderLayout(top, bottom, nil, nil),

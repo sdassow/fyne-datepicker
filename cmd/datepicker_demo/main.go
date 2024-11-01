@@ -19,12 +19,12 @@ func main() {
 	w := a.NewWindow("Demo")
 
 	dateInput := widget.NewEntry()
-	dateInput.SetPlaceHolder("0000/00/00 00:00")
+	dateInput.SetPlaceHolder("0000/00/00")
 	dateInput.ActionItem = widget.NewButtonWithIcon("", theme.MoreHorizontalIcon(), func() {
 		when := time.Now()
 
 		if dateInput.Text != "" {
-			t, err := time.Parse("2006/01/02 15:04", dateInput.Text)
+			t, err := time.Parse("2006/01/02", dateInput.Text)
 			if err == nil {
 				when = t
 			}
@@ -32,7 +32,35 @@ func main() {
 
 		datepicker := datepicker.NewDatePicker(when, time.Monday, func(when time.Time, ok bool) {
 			if ok {
-				dateInput.SetText(when.Format("2006/01/02 15:04"))
+				dateInput.SetText(when.Format("2006/01/02"))
+			}
+		})
+
+		dialog.ShowCustomConfirm(
+			"Choose date",
+			"Ok",
+			"Cancel",
+			datepicker,
+			datepicker.OnActioned,
+			w,
+		)
+	})
+
+	datetimeInput := widget.NewEntry()
+	datetimeInput.SetPlaceHolder("0000/00/00 00:00")
+	datetimeInput.ActionItem = widget.NewButtonWithIcon("", theme.MoreHorizontalIcon(), func() {
+		when := time.Now()
+
+		if datetimeInput.Text != "" {
+			t, err := time.Parse("2006/01/02 15:04", datetimeInput.Text)
+			if err == nil {
+				when = t
+			}
+		}
+
+		picker := datepicker.NewDateTimePicker(when, time.Monday, func(when time.Time, ok bool) {
+			if ok {
+				datetimeInput.SetText(when.Format("2006/01/02 15:04"))
 			}
 		})
 
@@ -40,8 +68,8 @@ func main() {
 			"Choose date and time",
 			"Ok",
 			"Cancel",
-			datepicker,
-			datepicker.OnActioned,
+			picker,
+			picker.OnActioned,
 			w,
 		)
 	})
@@ -51,7 +79,8 @@ func main() {
 		layout.NewBorderLayout(label, nil, nil, nil),
 		label,
 		widget.NewForm(
-			widget.NewFormItem("Timestamp", dateInput),
+			widget.NewFormItem("Date", dateInput),
+			widget.NewFormItem("Timestamp", datetimeInput),
 		),
 	))
 

@@ -309,13 +309,13 @@ func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bo
 	updateGrid(grid, when, weekStart, updateWhen, updateSelects)
 
 	hours := []string{}
-	for n := 0; n < 23; n++ {
+	for n := 0; n <= 23; n++ {
 		hours = append(hours, fmt.Sprintf("%02d", n))
 	}
 	hourInput := widget.NewSelectEntry(hours)
 
 	minutes := []string{}
-	for n := 0; n < 59; n++ {
+	for n := 0; n <= 59; n++ {
 		minutes = append(minutes, fmt.Sprintf("%02d", n))
 	}
 	minuteInput := widget.NewSelectEntry(minutes)

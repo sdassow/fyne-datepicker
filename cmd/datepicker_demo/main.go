@@ -21,8 +21,6 @@ func main() {
 	dateInput := widget.NewEntry()
 	dateInput.SetPlaceHolder("0000/00/00 00:00")
 	dateInput.ActionItem = widget.NewButtonWithIcon("", theme.MoreHorizontalIcon(), func() {
-		var d *dialog.CustomDialog
-
 		when := time.Now()
 
 		if dateInput.Text != "" {
@@ -36,11 +34,16 @@ func main() {
 			if ok {
 				dateInput.SetText(when.Format("2006/01/02 15:04"))
 			}
-			d.Hide()
 		})
 
-		d = dialog.NewCustomWithoutButtons("Choose date and time", datepicker, w)
-		d.Show()
+		dialog.ShowCustomConfirm(
+			"Choose date and time",
+			"Ok",
+			"Cancel",
+			datepicker,
+			datepicker.OnActioned,
+			w,
+		)
 	})
 
 	label := widget.NewLabelWithStyle("Demo", fyne.TextAlignCenter, fyne.TextStyle{Bold: true})

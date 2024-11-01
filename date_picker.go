@@ -231,7 +231,39 @@ func findMonth(month string) int {
 	return 0
 }
 
-func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bool)) fyne.CanvasObject {
+// custom entry that's a bit wider
+type selectEntry struct {
+	widget.SelectEntry
+}
+
+func newSelectEntry(options []string) *selectEntry {
+	e := &selectEntry{}
+	e.ExtendBaseWidget(e)
+	e.SetOptions(options)
+	return e
+}
+
+func (e *selectEntry) MinSize() fyne.Size {
+	o := e.SelectEntry.MinSize()
+	x := widget.NewLabel("").MinSize()
+	o.Width += x.Width
+	return o
+}
+
+type DateTimePicker struct {
+	widget.BaseWidget
+	container  *fyne.Container
+	OnActioned func(bool)
+}
+
+func (dtp *DateTimePicker) CreateRenderer() fyne.WidgetRenderer {
+	return widget.NewSimpleRenderer(dtp.container)
+}
+
+func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bool)) *DateTimePicker {
+	dtp := &DateTimePicker{}
+	dtp.ExtendBaseWidget(dtp)
+
 	var updateSelects func(time.Time)
 
 	grid := container.New(layout.NewGridLayoutWithColumns(7))
@@ -312,13 +344,13 @@ func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bo
 	for n := 0; n <= 23; n++ {
 		hours = append(hours, fmt.Sprintf("%02d", n))
 	}
-	hourInput := widget.NewSelectEntry(hours)
+	hourInput := newSelectEntry(hours)
 
 	minutes := []string{}
 	for n := 0; n <= 59; n++ {
 		minutes = append(minutes, fmt.Sprintf("%02d", n))
 	}
-	minuteInput := widget.NewSelectEntry(minutes)
+	minuteInput := newSelectEntry(minutes)
 
 	controlButtons := container.New(
 		layout.NewHBoxLayout(),
@@ -330,13 +362,11 @@ func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bo
 
 			updateSelects(when)
 		}),
-		widget.NewButton("Cancel", func() {
-			fn(when, false)
-		}),
-		widget.NewButton("Ok", func() {
-			fn(when, true)
-		}),
 	)
+
+	dtp.OnActioned = func(ok bool) {
+		fn(when, ok)
+	}
 
 	hourInput.SetText(when.Format("15"))
 	hourInput.OnChanged = func(str string) {
@@ -393,10 +423,12 @@ func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bo
 		timeForm,
 	)
 
-	return container.New(
+	dtp.container = container.New(
 		layout.NewBorderLayout(top, bottom, nil, nil),
 		top,
 		grid,
 		bottom,
 	)
+
+	return dtp
 }

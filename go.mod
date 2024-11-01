@@ -2,7 +2,10 @@ module github.com/sdassow/fyne-datepicker
 
 go 1.19
 
-require fyne.io/fyne/v2 v2.5.2
+require (
+	fyne.io/fyne/v2 v2.5.2
+	github.com/sdassow/atomic v0.0.1
+)
 
 require (
 	fyne.io/systray v1.11.0 // indirect

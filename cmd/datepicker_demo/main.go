@@ -7,6 +7,7 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
@@ -17,6 +18,11 @@ import (
 func main() {
 	a := app.New()
 	w := a.NewWindow("Demo")
+
+	CtrlAltS := &desktop.CustomShortcut{fyne.KeyS, fyne.KeyModifierControl | fyne.KeyModifierAlt}
+	w.Canvas().AddShortcut(CtrlAltS, func(_ fyne.Shortcut) {
+		makeScreenshot(w)
+	})
 
 	dateInput := widget.NewEntry()
 	dateInput.SetPlaceHolder("0000/00/00")

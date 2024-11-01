@@ -14,7 +14,7 @@ import (
 
 var datePickerMonths = []string{
 	"January",
-	"Februrary",
+	"February",
 	"March",
 	"April",
 	"May",

@@ -7,25 +7,11 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/lang"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
-
-var datePickerMonths = []string{
-	"January",
-	"February",
-	"March",
-	"April",
-	"May",
-	"June",
-	"July",
-	"August",
-	"September",
-	"October",
-	"November",
-	"December",
-}
 
 func daysInMonth(t time.Time, o int) int {
 	// get first day of the given month, add a month, and go one day back
@@ -103,26 +89,17 @@ func adjustWeekday(d time.Weekday, weekStart time.Weekday) int {
 	return ((7 - int(weekStart)) + int(d)) % 7
 }
 
-// offsets correspond to time.Weekday, hence starting on Monday
-var weekdayLabels = []*widget.Label{
-	widget.NewLabelWithStyle("Sun", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-	widget.NewLabelWithStyle("Mon", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-	widget.NewLabelWithStyle("Tue", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-	widget.NewLabelWithStyle("Wed", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-	widget.NewLabelWithStyle("Thu", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-	widget.NewLabelWithStyle("Fri", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-	widget.NewLabelWithStyle("Sat", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-}
-
-func updateGrid(grid *fyne.Container, when time.Time, weekStart time.Weekday, updateWhen func(time.Time), updateSelects func(time.Time)) {
+func updateGrid(grid *fyne.Container, when time.Time, weekStart time.Weekday, updateWhen func(time.Time), updateSelects func(time.Time), strs *dateTimePickerStrings) {
 	objs := []fyne.CanvasObject{}
 
+	left := fyne.TextAlignLeading
+	bold := fyne.TextStyle{Bold: true}
 	// row of weekdays at the top
 	for n := weekStart; n < 7; n++ {
-		objs = append(objs, weekdayLabels[n])
+		objs = append(objs, widget.NewLabelWithStyle(strs.weekdays[n], left, bold))
 	}
 	for n := 0; n < int(weekStart); n++ {
-		objs = append(objs, weekdayLabels[n])
+		objs = append(objs, widget.NewLabelWithStyle(strs.weekdays[n], left, bold))
 	}
 
 	firstWeekday := adjustWeekday(firstWeekdayOfMonth(when), weekStart)
@@ -222,9 +199,9 @@ func updateGrid(grid *fyne.Container, when time.Time, weekStart time.Weekday, up
 	grid.Refresh()
 }
 
-func findMonth(month string) int {
-	for n := 0; n < len(datePickerMonths); n++ {
-		if datePickerMonths[n] == month {
+func (dtp *DateTimePicker) findMonth(month string) int {
+	for n := 0; n < len(dtp.strings.months); n++ {
+		if dtp.strings.months[n] == month {
 			return n + 1
 		}
 	}
@@ -250,10 +227,18 @@ func (e *selectEntry) MinSize() fyne.Size {
 	return o
 }
 
+type dateTimePickerStrings struct {
+	months   []string
+	weekdays []string
+	now      string
+	time     string
+}
+
 type DateTimePicker struct {
 	widget.BaseWidget
 	container     *fyne.Container
 	updateSelects func(time.Time)
+	strings       *dateTimePickerStrings
 	OnActioned    func(bool)
 }
 
@@ -261,9 +246,41 @@ func (dtp *DateTimePicker) CreateRenderer() fyne.WidgetRenderer {
 	return widget.NewSimpleRenderer(dtp.container)
 }
 
+func (dtp *DateTimePicker) initStrings() {
+	dtp.strings = &dateTimePickerStrings{}
+	dtp.strings.months = []string{
+		lang.X("datepicker.month.january", "January"),
+		lang.X("datepicker.month.february", "February"),
+		lang.X("datepicker.month.march", "March"),
+		lang.X("datepicker.month.april", "April"),
+		lang.X("datepicker.month.may", "May"),
+		lang.X("datepicker.month.june", "June"),
+		lang.X("datepicker.month.july", "July"),
+		lang.X("datepicker.month.august", "August"),
+		lang.X("datepicker.month.september", "September"),
+		lang.X("datepicker.month.october", "October"),
+		lang.X("datepicker.month.november", "November"),
+		lang.X("datepicker.month.december", "December"),
+	}
+
+	dtp.strings.weekdays = []string{
+		lang.X("datepicker.weekday.sun", "Sun"),
+		lang.X("datepicker.weekday.mon", "Mon"),
+		lang.X("datepicker.weekday.tue", "Tue"),
+		lang.X("datepicker.weekday.wed", "Wed"),
+		lang.X("datepicker.weekday.thu", "Thu"),
+		lang.X("datepicker.weekday.fri", "Fri"),
+		lang.X("datepicker.weekday.sat", "Sat"),
+	}
+
+	dtp.strings.now = lang.X("datepicker.now", "Now")
+	dtp.strings.time = lang.X("datepicker.time", "Time")
+}
+
 func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bool)) *DateTimePicker {
 	dtp := &DateTimePicker{}
 	dtp.ExtendBaseWidget(dtp)
+	dtp.initStrings()
 	dtp.OnActioned = func(ok bool) {
 		fn(when, ok)
 	}
@@ -274,15 +291,15 @@ func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bo
 		when = t
 	}
 
-	monthSelect := widget.NewSelect(datePickerMonths, func(selected string) {
-		i := findMonth(selected)
+	monthSelect := widget.NewSelect(dtp.strings.months, func(selected string) {
+		i := dtp.findMonth(selected)
 		if i == 0 {
 			return
 		}
 
 		when = timeJumpYearMonth(when, when.Year(), i)
 
-		updateGrid(grid, when, weekStart, updateWhen, dtp.updateSelects)
+		updateGrid(grid, when, weekStart, updateWhen, dtp.updateSelects, dtp.strings)
 	})
 	monthSelect.Selected = when.Month().String()
 
@@ -299,7 +316,7 @@ func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bo
 
 		when = timeJumpYearMonth(when, int(i), int(when.Month()))
 
-		updateGrid(grid, when, weekStart, updateWhen, dtp.updateSelects)
+		updateGrid(grid, when, weekStart, updateWhen, dtp.updateSelects, dtp.strings)
 	})
 	yearSelect.Selected = fmt.Sprintf("%d", when.Year())
 
@@ -310,7 +327,7 @@ func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bo
 		yearSelect.Selected = fmt.Sprintf("%d", t.Year())
 		yearSelect.Refresh()
 
-		updateGrid(grid, t, weekStart, updateWhen, dtp.updateSelects)
+		updateGrid(grid, t, weekStart, updateWhen, dtp.updateSelects, dtp.strings)
 	}
 
 	prevMonthButton := widget.NewButtonWithIcon("", theme.NavigateBackIcon(), func() {
@@ -340,7 +357,7 @@ func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bo
 		),
 	)
 
-	updateGrid(grid, when, weekStart, updateWhen, dtp.updateSelects)
+	updateGrid(grid, when, weekStart, updateWhen, dtp.updateSelects, dtp.strings)
 
 	dtp.container = container.New(
 		layout.NewBorderLayout(top, nil, nil, nil),

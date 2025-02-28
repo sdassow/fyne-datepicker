@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -12,7 +13,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/sdassow/fyne-datepicker"
+	datepicker "github.com/sdassow/fyne-datepicker"
 )
 
 func main() {
@@ -25,9 +26,13 @@ func main() {
 	})
 
 	dateInput := widget.NewEntry()
-	dateInput.SetPlaceHolder("0000/00/00")
+	now := time.Now()
+	dateInput.SetPlaceHolder(now.Format("2006/01/02"))
 	dateInput.ActionItem = widget.NewButtonWithIcon("", theme.MoreHorizontalIcon(), func() {
-		when := time.Now()
+		when, err := time.Parse("2006/01/02 15:04", dateInput.Text)
+		if err != nil {
+			when = time.Now()
+		}
 
 		if dateInput.Text != "" {
 			t, err := time.Parse("2006/01/02", dateInput.Text)
@@ -39,6 +44,9 @@ func main() {
 		datepicker := datepicker.NewDatePicker(when, time.Monday, func(when time.Time, ok bool) {
 			if ok {
 				dateInput.SetText(when.Format("2006/01/02"))
+				fmt.Printf("new Date: %s\n", when.Format("2006/01/02"))
+			} else {
+				fmt.Printf("old Date: %s\n", when.Format("2006/01/02"))
 			}
 		})
 
@@ -53,20 +61,27 @@ func main() {
 	})
 
 	datetimeInput := widget.NewEntry()
-	datetimeInput.SetPlaceHolder("0000/00/00 00:00")
+	datetimeInput.SetPlaceHolder(now.Format("2006/01/02 15:04"))
 	datetimeInput.ActionItem = widget.NewButtonWithIcon("", theme.MoreHorizontalIcon(), func() {
-		when := time.Now()
+		inWhen, err := time.Parse("2006/01/02 15:04", dateInput.Text)
+		if err != nil {
+			inWhen = time.Now()
+		}
 
 		if datetimeInput.Text != "" {
 			t, err := time.Parse("2006/01/02 15:04", datetimeInput.Text)
 			if err == nil {
-				when = t
+				inWhen = t
 			}
 		}
 
-		picker := datepicker.NewDateTimePicker(when, time.Monday, func(when time.Time, ok bool) {
+		picker := datepicker.NewDateTimePicker(inWhen, time.Monday, func(when time.Time, ok bool) {
 			if ok {
 				datetimeInput.SetText(when.Format("2006/01/02 15:04"))
+				fmt.Printf("new DateTime: %s\n", when.Format("2006/01/02 15:04"))
+			} else {
+				datetimeInput.SetText(inWhen.Format("2006/01/02 15:04"))
+				fmt.Printf("old DateTime: %s\n", inWhen.Format("2006/01/02 15:04"))
 			}
 		})
 

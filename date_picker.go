@@ -278,11 +278,11 @@ func (dtp *DateTimePicker) initStrings() {
 	dtp.strings.time = lang.X("datepicker.time", "Time")
 }
 
-func NewDatePicker(whenIn time.Time, weekStart time.Weekday, fn func(time.Time, bool)) *DateTimePicker {
+func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bool)) *DateTimePicker {
 	dtp := &DateTimePicker{}
 	dtp.ExtendBaseWidget(dtp)
 	dtp.initStrings()
-	dtp.when = whenIn
+	dtp.when = when
 	dtp.OnActioned = func(ok bool) {
 		fn(dtp.when, ok)
 	}

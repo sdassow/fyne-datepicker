@@ -240,6 +240,7 @@ type DateTimePicker struct {
 	updateSelects func(time.Time)
 	strings       *dateTimePickerStrings
 	OnActioned    func(bool)
+	when          time.Time
 }
 
 func (dtp *DateTimePicker) CreateRenderer() fyne.WidgetRenderer {
@@ -281,14 +282,15 @@ func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bo
 	dtp := &DateTimePicker{}
 	dtp.ExtendBaseWidget(dtp)
 	dtp.initStrings()
+	dtp.when = when
 	dtp.OnActioned = func(ok bool) {
-		fn(when, ok)
+		fn(dtp.when, ok)
 	}
 
 	grid := container.New(layout.NewGridLayoutWithColumns(7))
 
 	updateWhen := func(t time.Time) {
-		when = t
+		dtp.when = t
 	}
 
 	monthSelect := widget.NewSelect(dtp.strings.months, func(selected string) {
@@ -297,15 +299,15 @@ func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bo
 			return
 		}
 
-		when = timeJumpYearMonth(when, when.Year(), i)
+		dtp.when = timeJumpYearMonth(dtp.when, dtp.when.Year(), i)
 
-		updateGrid(grid, when, weekStart, updateWhen, dtp.updateSelects, dtp.strings)
+		updateGrid(grid, dtp.when, weekStart, updateWhen, dtp.updateSelects, dtp.strings)
 	})
-	monthSelect.Selected = dtp.strings.months[when.Month()-1]
+	monthSelect.Selected = dtp.strings.months[dtp.when.Month()-1]
 
 	years := []string{}
 	// inverted years, most recent on top for easy selection
-	for n := when.Year() + 10; n >= when.Year()-100; n-- {
+	for n := dtp.when.Year() + 10; n >= dtp.when.Year()-100; n-- {
 		years = append(years, fmt.Sprintf("%d", n))
 	}
 	yearSelect := widget.NewSelect(years, func(selected string) {
@@ -314,11 +316,11 @@ func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bo
 			return
 		}
 
-		when = timeJumpYearMonth(when, int(i), int(when.Month()))
+		dtp.when = timeJumpYearMonth(dtp.when, int(i), int(dtp.when.Month()))
 
-		updateGrid(grid, when, weekStart, updateWhen, dtp.updateSelects, dtp.strings)
+		updateGrid(grid, dtp.when, weekStart, updateWhen, dtp.updateSelects, dtp.strings)
 	})
-	yearSelect.Selected = fmt.Sprintf("%d", when.Year())
+	yearSelect.Selected = fmt.Sprintf("%d", dtp.when.Year())
 
 	dtp.updateSelects = func(t time.Time) {
 		// directly assign instead of setter methods to avoid multiple updates
@@ -331,15 +333,15 @@ func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bo
 	}
 
 	prevMonthButton := widget.NewButtonWithIcon("", theme.NavigateBackIcon(), func() {
-		when = timeJumpMonth(when, -1)
+		dtp.when = timeJumpMonth(dtp.when, -1)
 
-		dtp.updateSelects(when)
+		dtp.updateSelects(dtp.when)
 	})
 
 	nextMonthButton := widget.NewButtonWithIcon("", theme.NavigateNextIcon(), func() {
-		when = timeJumpMonth(when, 1)
+		dtp.when = timeJumpMonth(dtp.when, 1)
 
-		dtp.updateSelects(when)
+		dtp.updateSelects(dtp.when)
 	})
 
 	top := container.New(
@@ -357,7 +359,7 @@ func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bo
 		),
 	)
 
-	updateGrid(grid, when, weekStart, updateWhen, dtp.updateSelects, dtp.strings)
+	updateGrid(grid, dtp.when, weekStart, updateWhen, dtp.updateSelects, dtp.strings)
 
 	dtp.container = container.New(
 		layout.NewBorderLayout(top, nil, nil, nil),
@@ -368,8 +370,8 @@ func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bo
 	return dtp
 }
 
-func NewDateTimePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bool)) *DateTimePicker {
-	dtp := NewDatePicker(when, weekStart, fn)
+func NewDateTimePicker(inWhen time.Time, weekStart time.Weekday, fn func(time.Time, bool)) *DateTimePicker {
+	dtp := NewDatePicker(inWhen, weekStart, fn)
 
 	hours := []string{}
 	for n := 0; n <= 23; n++ {
@@ -386,16 +388,16 @@ func NewDateTimePicker(when time.Time, weekStart time.Weekday, fn func(time.Time
 	controlButtons := container.New(
 		layout.NewHBoxLayout(),
 		widget.NewButton("Now", func() {
-			when = time.Now()
+			dtp.when = time.Now()
 
-			hourInput.SetText(when.Format("15"))
-			minuteInput.SetText(when.Format("04"))
+			hourInput.SetText(dtp.when.Format("15"))
+			minuteInput.SetText(dtp.when.Format("04"))
 
-			dtp.updateSelects(when)
+			dtp.updateSelects(dtp.when)
 		}),
 	)
 
-	hourInput.SetText(when.Format("15"))
+	hourInput.SetText(dtp.when.Format("15"))
 	hourInput.OnChanged = func(str string) {
 		t, err := time.Parse("15", str)
 		if err != nil {
@@ -403,19 +405,20 @@ func NewDateTimePicker(when time.Time, weekStart time.Weekday, fn func(time.Time
 			return
 		}
 
-		when = time.Date(
-			when.Year(),
-			when.Month(),
-			when.Day(),
+		dtp.when = time.Date(
+			dtp.when.Year(),
+			dtp.when.Month(),
+			dtp.when.Day(),
 			t.Hour(),
-			when.Minute(),
+			dtp.when.Minute(),
 			0,
 			0,
-			when.Location(),
+			dtp.when.Location(),
 		)
+		dtp.OnActioned(true)
 	}
 
-	minuteInput.SetText(when.Format("04"))
+	minuteInput.SetText(dtp.when.Format("04"))
 	minuteInput.OnChanged = func(str string) {
 		i, err := strconv.ParseInt(str, 10, 64)
 		if err != nil {
@@ -426,16 +429,17 @@ func NewDateTimePicker(when time.Time, weekStart time.Weekday, fn func(time.Time
 			fyne.LogError("minute value out of range", err)
 			return
 		}
-		when = time.Date(
-			when.Year(),
-			when.Month(),
-			when.Day(),
-			when.Hour(),
+		dtp.when = time.Date(
+			dtp.when.Year(),
+			dtp.when.Month(),
+			dtp.when.Day(),
+			dtp.when.Hour(),
 			int(i),
 			0,
 			0,
-			when.Location(),
+			dtp.when.Location(),
 		)
+		dtp.OnActioned(true)
 	}
 
 	timeForm := widget.NewForm(

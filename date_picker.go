@@ -303,7 +303,7 @@ func NewDatePicker(whenIn time.Time, weekStart time.Weekday, fn func(time.Time, 
 
 		updateGrid(grid, dtp.when, weekStart, updateWhen, dtp.updateSelects, dtp.strings)
 	})
-	monthSelect.Selected = dtp.when.Month().String()
+	monthSelect.Selected = dtp.strings.months[dtp.when.Month()-1]
 
 	years := []string{}
 	// inverted years, most recent on top for easy selection

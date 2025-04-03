@@ -316,7 +316,7 @@ func NewDatePicker(whenIn time.Time, weekStart time.Weekday, fn func(time.Time, 
 			return
 		}
 
-		dtp.when = timeJumpYearMonth(dtp.when, int(dtp.when.Year()), int(i))
+		dtp.when = timeJumpYearMonth(dtp.when, int(i), int(dtp.when.Month()))
 
 		updateGrid(grid, dtp.when, weekStart, updateWhen, dtp.updateSelects, dtp.strings)
 	})

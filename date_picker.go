@@ -240,6 +240,9 @@ type DateTimePicker struct {
 	updateSelects func(time.Time)
 	strings       *dateTimePickerStrings
 	OnActioned    func(bool)
+
+	getWhen func() time.Time
+	setWhen func(time.Time)
 }
 
 func (dtp *DateTimePicker) CreateRenderer() fyne.WidgetRenderer {
@@ -284,6 +287,9 @@ func NewDatePicker(when time.Time, weekStart time.Weekday, fn func(time.Time, bo
 	dtp.OnActioned = func(ok bool) {
 		fn(when, ok)
 	}
+
+	dtp.getWhen = func() time.Time { return when }
+	dtp.setWhen = func(t time.Time) { when = t }
 
 	grid := container.New(layout.NewGridLayoutWithColumns(7))
 
@@ -386,7 +392,8 @@ func NewDateTimePicker(when time.Time, weekStart time.Weekday, fn func(time.Time
 	controlButtons := container.New(
 		layout.NewHBoxLayout(),
 		widget.NewButton("Now", func() {
-			when = time.Now()
+			now := time.Now()
+			dtp.setWhen(now)
 
 			hourInput.SetText(when.Format("15"))
 			minuteInput.SetText(when.Format("04"))
@@ -403,16 +410,11 @@ func NewDateTimePicker(when time.Time, weekStart time.Weekday, fn func(time.Time
 			return
 		}
 
-		when = time.Date(
-			when.Year(),
-			when.Month(),
-			when.Day(),
-			t.Hour(),
-			when.Minute(),
-			0,
-			0,
-			when.Location(),
-		)
+		cur := dtp.getWhen()
+		dtp.setWhen(time.Date(
+			cur.Year(), cur.Month(), cur.Day(),
+			t.Hour(), cur.Minute(), 0, 0, cur.Location(),
+		))
 	}
 
 	minuteInput.SetText(when.Format("04"))
@@ -426,16 +428,11 @@ func NewDateTimePicker(when time.Time, weekStart time.Weekday, fn func(time.Time
 			fyne.LogError("minute value out of range", err)
 			return
 		}
-		when = time.Date(
-			when.Year(),
-			when.Month(),
-			when.Day(),
-			when.Hour(),
-			int(i),
-			0,
-			0,
-			when.Location(),
-		)
+		cur := dtp.getWhen()
+		dtp.setWhen(time.Date(
+			cur.Year(), cur.Month(), cur.Day(),
+			cur.Hour(), int(i), 0, 0, cur.Location(),
+		))
 	}
 
 	timeForm := widget.NewForm(
